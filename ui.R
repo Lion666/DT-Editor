@@ -6,6 +6,7 @@
 # 
 #    http://shiny.rstudio.com/
 #
+# devtools::install_github("AnalytixWare/ShinySky")
 
 library(shiny)
 library(shinyjs)
@@ -33,5 +34,5 @@ shinyUI(fluidPage(
   tags$head(tags$style(".butt{background-color:#230682;} .butt{color: #e6ebef;}")),
   downloadButton("Trich_csv", "Download in CSV", class="butt"),
   useShinyalert(), # Set up shinyalert
-  uiOutput("MainBody_trich"),actionButton(inputId = "Updated_trich",label = "Save")
+  uiOutput("MainBody_trich")#,actionButton(inputId = "Updated_trich",label = "Save")
 ))
