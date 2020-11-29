@@ -17,6 +17,12 @@ library(DT)
 library(data.table)
 library(lubridate)
 library(shinyalert)
+library(aws.s3)
+
+s3BucketName <- "shingrix"
+Sys.setenv("AWS_ACCESS_KEY_ID" = "AKIAIYLHB5SP2ZBP2AZA",
+           "AWS_SECRET_ACCESS_KEY" = "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",
+           "AWS_DEFAULT_REGION" = "eu-west-3")
 
 rm(list = ls())
 useShinyalert()
@@ -24,7 +30,7 @@ shinyServer(function(input, output, session){
   
   ### interactive dataset 
   vals_trich<-reactiveValues()
-  vals_trich$Data<-readRDS("./scoresF.rds")
+  vals_trich$Data<-s3readRDS("scoresF.rds",bucket=s3BucketName)
 
   #### MainBody_trich is the id of DT table
   output$MainBody_trich<-renderUI({
@@ -60,7 +66,10 @@ shinyServer(function(input, output, session){
   
   ### save to RDS part 
   observeEvent(input$Updated_trich,{
-    saveRDS(vals_trich$Data, "./scoresF.rds")
+    file_path <- file.path(tempdir(),"scoresF.rds")
+    saveRDS(vals_trich$Data,file_path)
+    # Upload the file to S3
+    s3saveRDS(file_path, object = "scoresF.rds", bucket = s3BucketName)
     shinyalert(title = "Saved!", type = "success")
   })
   
@@ -96,22 +105,9 @@ shinyServer(function(input, output, session){
     selected_row=input$Main_table_trich_rows_selected
     old_row=vals_trich$Data[selected_row]
     row_change=list()
-    for (i in #colnames(old_row)
-              c("Comments"))
-    {
-      if (is.numeric(vals_trich$Data[[i]]))
-      {
-        row_change[[i]]<-paste0('<input class="new_input" value= ','"',old_row[[i]],'"','  type="number" id=new_',i,' ><br>')
-      } 
-      else if( is.Date(vals_trich$Data[[i]])){
-        row_change[[i]]<-paste0('<input class="new_input" value= ','"',old_row[[i]],'"',' type="date" id=new_  ',i,'  ><br>') 
-      }
-      else 
-        row_change[[i]]<-paste0('<input class="new_input" value= ','"',old_row[[i]],'"',' type="textarea"  id=new_',i,'><br>')
-    }
+    row_change[["Comments"]]<-paste0('<input class="new_input" value= ','"',old_row[["Comments"]],'"',' type="textarea"  id=new_Comments><br>')
     row_change=as.data.table(row_change)
-    setnames(row_change,#colnames(old_row)
-                        c("Comments"))
+    setnames(row_change,c("Comments"))
     DT=row_change
     DT 
     },escape=F,options=list(dom='t',ordering=F,scrollX = TRUE),selection="none",rownames=F)
